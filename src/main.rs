@@ -44,7 +44,7 @@ fn main() {
     let mut buffer     = [0u8; BUFFER_SIZE];
     let mut key_buf    = [0u8; BUFFER_SIZE];
 
-    let mut pb = ProgressBar::new((source_size / BUFFER_SIZE as u64) as u64);
+    let mut pb = ProgressBar::new(source_size / BUFFER_SIZE as u64);
     pb.format("╢▌▌░╟");
     while let Ok(read_count) = source.read(&mut buffer) {
         if read_count == 0 { break; }
