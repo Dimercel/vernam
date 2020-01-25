@@ -1,3 +1,5 @@
+extern crate pbr;
+
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -5,6 +7,7 @@ use std::io::Read;
 use std::io::prelude::*;
 use std::path::Path;
 use std::process;
+use pbr::ProgressBar;
 
 
 const BUFFER_SIZE: usize = 4096;
@@ -28,7 +31,8 @@ fn main() {
         process::exit(0x0001);
     }
 
-    if fs::metadata(source_path).unwrap().len() > fs::metadata(key_path).unwrap().len() {
+    let source_size = fs::metadata(source_path).unwrap().len();
+    if  source_size > fs::metadata(key_path).unwrap().len() {
         println!("The source file must be larger then key-file!");
         process::exit(0x0001);
     }
@@ -39,17 +43,21 @@ fn main() {
 
     let mut buffer     = [0u8; BUFFER_SIZE];
     let mut key_buf    = [0u8; BUFFER_SIZE];
-    let mut cipher_buf = [0u8; BUFFER_SIZE];
 
+    let mut pb = ProgressBar::new((source_size / BUFFER_SIZE as u64) as u64);
+    pb.format("╢▌▌░╟");
     while let Ok(read_count) = source.read(&mut buffer) {
         if read_count == 0 { break; }
 
         key_source.read(&mut key_buf);
 
         for inx in 0..read_count {
-            cipher_buf[inx] = buffer[inx] ^ key_buf[inx];
+            key_buf[inx] = buffer[inx] ^ key_buf[inx];
         }
 
-        cipher.write(&cipher_buf[0..read_count]);
+        cipher.write(&key_buf[0..read_count]);
+        pb.inc();
     }
+
+    pb.finish_print("done");
 }
