@@ -3,7 +3,7 @@ extern crate pbr;
 use std::env;
 use std::fs;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, BufWriter};
 use std::io::prelude::*;
 use std::path::Path;
 use std::process;
@@ -12,6 +12,35 @@ use pbr::ProgressBar;
 
 const BUFFER_SIZE: usize = 4096;
 
+
+fn cipher_process (source_path: &String, key_path: &String) {
+    let source_size = fs::metadata(source_path).unwrap().len();
+
+    let mut source     = File::open(source_path).unwrap();
+    let mut cipher     = File::create(format!("{}.vernam", source_path)).unwrap();
+    let mut key_source = File::open(key_path).unwrap();
+
+    let mut buffer     = [0u8; BUFFER_SIZE];
+    let mut key_buf    = [0u8; BUFFER_SIZE];
+
+    let mut pb = ProgressBar::new(source_size / BUFFER_SIZE as u64);
+    pb.show_speed = false;
+    pb.format("╢▌▌░╟");
+    while let Ok(read_count) = source.read(&mut buffer) {
+        if read_count == 0 { break; }
+
+        key_source.read(&mut key_buf);
+
+        for inx in 0..read_count {
+            key_buf[inx] = buffer[inx] ^ key_buf[inx];
+        }
+
+        cipher.write(&key_buf[0..read_count]);
+        pb.inc();
+    }
+
+    pb.finish_print("done");
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -37,27 +66,6 @@ fn main() {
         process::exit(0x0001);
     }
 
-    let mut source     = File::open(source_path).unwrap();
-    let mut cipher     = File::create(format!("{}.vernam", source_path)).unwrap();
-    let mut key_source = File::open(key_path).unwrap();
+    cipher_process(&source_path, &key_path);
 
-    let mut buffer     = [0u8; BUFFER_SIZE];
-    let mut key_buf    = [0u8; BUFFER_SIZE];
-
-    let mut pb = ProgressBar::new(source_size / BUFFER_SIZE as u64);
-    pb.format("╢▌▌░╟");
-    while let Ok(read_count) = source.read(&mut buffer) {
-        if read_count == 0 { break; }
-
-        key_source.read(&mut key_buf);
-
-        for inx in 0..read_count {
-            key_buf[inx] = buffer[inx] ^ key_buf[inx];
-        }
-
-        cipher.write(&key_buf[0..read_count]);
-        pb.inc();
-    }
-
-    pb.finish_print("done");
 }
