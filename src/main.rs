@@ -13,7 +13,7 @@ use pbr::ProgressBar;
 const BUFFER_SIZE: usize = 4096;
 
 
-fn cipher_process (source_path: &String, key_path: &String) {
+fn cipher_process(source_path: &String, key_path: &String) {
     let source_size = fs::metadata(source_path).unwrap().len();
 
     let mut source     = File::open(source_path).unwrap();
@@ -39,7 +39,27 @@ fn cipher_process (source_path: &String, key_path: &String) {
         pb.inc();
     }
 
-    pb.finish_print("done");
+    pb.finish_print("Done");
+}
+
+fn erase_file(path: &String) {
+    let file_size = fs::metadata(path).unwrap().len();
+
+    match File::create(path) {
+        Ok(file) => {
+            let mut writer     = BufWriter::with_capacity(1024*1024, file);
+            let     buffer     = [0u8; BUFFER_SIZE];
+
+            for _ in 0..(file_size / BUFFER_SIZE as u64) {
+                writer.write(&buffer);
+            }
+
+            writer.write(&buffer[0..((file_size % BUFFER_SIZE as u64) as usize)]);
+
+            fs::remove_file(path);
+        },
+        Err(_e) => return,
+    }
 }
 
 fn main() {
@@ -66,6 +86,11 @@ fn main() {
         process::exit(0x0001);
     }
 
+    println!("Starting...", );
     cipher_process(&source_path, &key_path);
 
+    println!("Safe deletion of the original file. Please, wait...");
+    erase_file(&source_path);
+
+    println!("ok", );
 }
