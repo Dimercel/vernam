@@ -5,6 +5,7 @@ use std::fs;
 use std::fs::File;
 use std::io::{Read, BufWriter};
 use std::io::prelude::*;
+use std::io;
 use std::path::Path;
 use std::process;
 use pbr::ProgressBar;
@@ -13,12 +14,12 @@ use pbr::ProgressBar;
 const BUFFER_SIZE: usize = 4096;
 
 
-fn cipher_process(source_path: &String, key_path: &String) {
+fn cipher_process(source_path: &String, key_path: &String) -> Result<(), io::Error> {
     let source_size = fs::metadata(source_path).unwrap().len();
 
-    let mut source     = File::open(source_path).unwrap();
-    let mut cipher     = File::create(format!("{}.vernam", source_path)).unwrap();
-    let mut key_source = File::open(key_path).unwrap();
+    let mut source     = File::open(source_path)?;
+    let mut cipher     = File::create(format!("{}.vernam", source_path))?;
+    let mut key_source = File::open(key_path)?;
 
     let mut buffer     = [0u8; BUFFER_SIZE];
     let mut key_buf    = [0u8; BUFFER_SIZE];
@@ -29,37 +30,37 @@ fn cipher_process(source_path: &String, key_path: &String) {
     while let Ok(read_count) = source.read(&mut buffer) {
         if read_count == 0 { break; }
 
-        key_source.read(&mut key_buf);
+        key_source.read(&mut key_buf)?;
 
         for inx in 0..read_count {
             key_buf[inx] = buffer[inx] ^ key_buf[inx];
         }
 
-        cipher.write(&key_buf[0..read_count]);
+        cipher.write(&key_buf[0..read_count])?;
         pb.inc();
     }
 
     pb.finish_print("Done");
+
+    return Ok(());
 }
 
-fn erase_file(path: &String) {
+fn erase_file(path: &String) -> Result<(), io::Error> {
     let file_size = fs::metadata(path).unwrap().len();
 
-    match File::create(path) {
-        Ok(file) => {
-            let mut writer     = BufWriter::with_capacity(1024*1024, file);
-            let     buffer     = [0u8; BUFFER_SIZE];
+    let file = File::create(path)?;
+    let mut writer = BufWriter::with_capacity(1024*1024, file);
+    let     buffer = [0u8; BUFFER_SIZE];
 
-            for _ in 0..(file_size / BUFFER_SIZE as u64) {
-                writer.write(&buffer);
-            }
-
-            writer.write(&buffer[0..((file_size % BUFFER_SIZE as u64) as usize)]);
-
-            fs::remove_file(path);
-        },
-        Err(_e) => return,
+    for _ in 0..(file_size / BUFFER_SIZE as u64) {
+        writer.write(&buffer)?;
     }
+
+    writer.write(&buffer[0..((file_size % BUFFER_SIZE as u64) as usize)])?;
+
+    fs::remove_file(path)?;
+
+    return Ok(());
 }
 
 fn main() {
@@ -86,11 +87,22 @@ fn main() {
         process::exit(0x0001);
     }
 
-    println!("Starting...", );
-    cipher_process(&source_path, &key_path);
+    println!("Starting...");
+    match cipher_process(&source_path, &key_path) {
+        Err(_) => {
+            println!("Error during cipher process!");
+            process::exit(0x0001);
+        },
+        _ => (),
+    }
 
     println!("Safe deletion of the original file. Please, wait...");
-    erase_file(&source_path);
-
-    println!("ok", );
+    match erase_file(&source_path) {
+        Err(_) => {
+            println!("Error during safe deletion process!");
+            process::exit(0x0001);
+        },
+        _ => (),
+    }
+    println!("ok");
 }
