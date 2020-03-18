@@ -14,6 +14,7 @@ use pbr::ProgressBar;
 const BUFFER_SIZE: usize = 4096;
 
 
+// Зашифровывает содержимое файла с помощью файла-ключа используя алгоритм одноразового блокнота
 fn cipher_process(source_path: &String, key_path: &String) -> Result<(), io::Error> {
     let source_size = fs::metadata(source_path).unwrap().len();
 
@@ -45,6 +46,7 @@ fn cipher_process(source_path: &String, key_path: &String) -> Result<(), io::Err
     return Ok(());
 }
 
+// Безопасно удаляет файл путем заполнения его нулями и последующим удалением из файловой системы
 fn erase_file(path: &String) -> Result<(), io::Error> {
     let file_size = fs::metadata(path).unwrap().len();
 
