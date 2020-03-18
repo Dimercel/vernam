@@ -54,13 +54,20 @@ fn erase_file(path: &String) -> Result<(), io::Error> {
     let mut writer = BufWriter::with_capacity(1024*1024, file);
     let     buffer = [0u8; BUFFER_SIZE];
 
-    for _ in 0..(file_size / BUFFER_SIZE as u64) {
+    let segment_count: u64 = file_size / BUFFER_SIZE as u64;
+
+    let mut pb = ProgressBar::new(segment_count);
+    pb.show_speed = false;
+    pb.format("╢▌▌░╟");
+    for _ in 0..segment_count {
         writer.write(&buffer)?;
+        pb.inc();
     }
 
     writer.write(&buffer[0..((file_size % BUFFER_SIZE as u64) as usize)])?;
-
     fs::remove_file(path)?;
+
+    pb.finish_print("Done");
 
     return Ok(());
 }
@@ -89,7 +96,7 @@ fn main() {
         process::exit(0x0001);
     }
 
-    println!("Starting...");
+    println!("File '{}' encryption...", source_path);
     match cipher_process(&source_path, &key_path) {
         Err(_) => {
             println!("Error during cipher process!");
@@ -114,6 +121,4 @@ fn main() {
         },
         _ => (),
     }
-
-    println!("ok");
 }
