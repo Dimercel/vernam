@@ -106,5 +106,14 @@ fn main() {
         },
         _ => (),
     }
+
+    match fs::rename(format!("{}.vernam", source_path), source_path) {
+        Err(_) => {
+            println!("Error! Path '{}.vernam' does not exists!", source_path);
+            process::exit(0x0001);
+        },
+        _ => (),
+    }
+
     println!("ok");
 }
