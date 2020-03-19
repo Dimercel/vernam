@@ -1,6 +1,7 @@
 extern crate pbr;
+extern crate clap;
 
-use std::env;
+use clap::{Arg, App};
 use std::fs;
 use std::fs::File;
 use std::io::{Read, BufWriter};
@@ -73,25 +74,33 @@ fn erase_file(path: &String) -> Result<(), io::Error> {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let description = App::new("Vernam cipher")
+        .version("1.0")
+        .author("Ito Dimercel <xolcman@gmail.com>")
+        .arg(Arg::with_name("file")
+             .required(true)
+             .help("Original file")
+             .index(1))
+        .arg(Arg::with_name("key")
+             .short("k")
+             .long("key")
+             .required(true)
+             .help("Path to file-key")
+             .takes_value(true))
+        .get_matches();
 
-    if args.len() != 3 {
-        println!("Parameters not specified!");
-        process::exit(0x0001);
-    }
+    let source_path = description.value_of("file").unwrap_or("").to_string();
+    let key_path    = description.value_of("key").unwrap_or("").to_string();
 
-    let source_path = &args[1];
-    let key_path    = &args[2];
-
-    if !(Path::new(source_path).exists()) ||
-       !(Path::new(key_path).exists()) {
+    if !(Path::new(&source_path).exists()) ||
+       !(Path::new(&key_path).exists()) {
 
         println!("The specified file does not exist!");
         process::exit(0x0001);
     }
 
-    let source_size = fs::metadata(source_path).unwrap().len();
-    if  source_size > fs::metadata(key_path).unwrap().len() {
+    let source_size = fs::metadata(&source_path).unwrap().len();
+    if  source_size > fs::metadata(&key_path).unwrap().len() {
         println!("The source file must be larger then key-file!");
         process::exit(0x0001);
     }
@@ -114,7 +123,7 @@ fn main() {
         _ => (),
     }
 
-    match fs::rename(format!("{}.vernam", source_path), source_path) {
+    match fs::rename(format!("{}.vernam", source_path), &source_path) {
         Err(_) => {
             println!("Error! Path '{}.vernam' does not exists!", source_path);
             process::exit(0x0001);
