@@ -52,7 +52,7 @@ fn erase_file(path: &String) -> Result<(), io::Error> {
     let file_size = fs::metadata(path).unwrap().len();
 
     let file = File::create(path)?;
-    let mut writer = BufWriter::with_capacity(1024*1024, file);
+    let mut writer = BufWriter::with_capacity(BUFFER_SIZE, file);
     let     buffer = [0u8; BUFFER_SIZE];
 
     let segment_count: u64 = file_size / BUFFER_SIZE as u64;
